@@ -6,6 +6,7 @@ class WordCount(MRJob):
     def mapper(self,_,line):
         # ejecuta linea a linea
         text = json.loads(line)
+        # hay que hacer un filtro pq no todos tienen
         for word in text["reviewText"].split():
             yield (word, 1)
         
