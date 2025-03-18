@@ -1,0 +1,4 @@
+Hurlenko File Manager.
+User: admin
+Pass: admin
+

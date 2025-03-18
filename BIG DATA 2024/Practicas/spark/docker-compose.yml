@@ -1,0 +1,83 @@
+version: '3.8'
+services:
+  filebrowser:
+    image: hurlenko/filebrowser
+    user: "root:root"
+    ports:
+      - 3055:8080
+    volumes:
+      - ./volumes/hdfs:/data
+      - ./volumes/fliebrowser/CONFIG_DIR:/config
+    environment:
+      - FB_BASEURL=/filebrowser
+    restart: always
+
+  compute-bigdata:
+    image: jupyter/all-spark-notebook
+    container_name: compute-bigdata
+    hostname: compute-bigdata
+    user: root
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      CHOWN_HOME: "yes"
+      CHOWN_HOME_OPTS: "-R"
+      SPARK_OPTS: "--master=local[120] --driver-memory=8g"
+      GRANT_SUDO: "yes"
+    volumes:
+      - ./volumes/compute-bigdata:/home/jovyan/
+      - ./volumes/hdfs:/home/jovyan/hdfs/
+    ports:
+      - "3011:8888"
+      - "3012:4040"
+      - "3013:4041"
+      - "3014:4042"
+    networks:
+      - compute-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: "start-notebook.sh --NotebookApp.token='Misupertoken' --NotebookApp.password=''"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+        reservations:
+          memory: 4g
+
+
+  postgres-bigdata-test:
+    image: postgres:latest
+    container_name: postgres-bigdata-test
+    hostname: postgres-bigdata-test
+    environment:
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_DB: bigdata_test
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - ./volumes/postgres-bigdata-test-data:/var/lib/postgresql/data
+    networks:
+      - compute-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+        - "5432:5432"
+    secrets:
+      - db_password
+      - db_user
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+        reservations:
+          memory: 4g
+
+
+networks:
+  compute-network:
+    driver: bridge
+secrets:
+  db_password:
+    file: secrets/db_password.txt
+  db_user:
+    file: secrets/db_user.txt
